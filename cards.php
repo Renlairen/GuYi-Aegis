@@ -137,6 +137,7 @@ if (!isset($_SESSION['admin_logged_in'])): ?>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>系统登录 - Enterprise Admin</title>
+    <!-- 字体改回 CDN -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body { margin:0; font-family:'Inter',sans-serif; background:#0f172a; height:100vh; display:flex; align-items:center; justify-content:center; overflow:hidden; }
@@ -305,17 +306,21 @@ $activeDevices = $db->getActiveDevices();
 
 <!DOCTYPE html>
 <html lang="zh-CN">
-<!-- ... (这里往下所有的 HTML 代码与原文件完全一致，无需改动，请直接使用原文件的 HTML 部分) ... -->
-<!-- 为方便复制，我只展示修改逻辑部分，请保留原文件的 HTML 结构 -->
-<!-- 为了不截断，请使用原文件的 HTML 头部到结尾部分，替换上面的 PHP 逻辑头部即可 -->
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>GuYi Aegis Pro</title>
     <link rel="icon" href="backend/logo.png" type="image/png">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- 本地化 CSS (需要手动下载内容，见下方说明) -->
+    <link href="assets/css/all.min.css" rel="stylesheet">
+    
+    <!-- 字体改回 CDN -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- 本地化 JS (需要手动下载内容，见下方说明) -->
+    <script src="assets/js/chart.js"></script>
+
     <style>
         /* ... (CSS 保持不变) ... */
         :root {
