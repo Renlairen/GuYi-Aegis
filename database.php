@@ -97,18 +97,16 @@ if (!class_exists('Database')) {
 
         public function deleteAppVariable($id) { $this->pdo->prepare("DELETE FROM app_variables WHERE id = ?")->execute([$id]); }
 
-        // [重要] 获取变量 - 支持公开/私有筛选
         public function getAppVariables($appId, $onlyPublic = false) {
             $sql = "SELECT * FROM app_variables WHERE app_id = ?";
             if ($onlyPublic) {
-                $sql .= " AND is_public = 1"; // 如果只请求公开的，必须加上这个条件
+                $sql .= " AND is_public = 1";
             }
             $stmt = $this->pdo->prepare($sql);
             $stmt->execute([$appId]);
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         }
         
-        // [重要] 通过Key获取App信息 - API.php 依赖此函数
         public function getAppIdByKey($appKey) {
             $stmt = $this->pdo->prepare("SELECT id, status, app_name FROM applications WHERE app_key = ?");
             $stmt->execute([$appKey]);
@@ -122,7 +120,7 @@ if (!class_exists('Database')) {
             $app = null; $appNameForLog = 'System'; $appIdStr = " = 0"; 
 
             if ($appKey) {
-                $app = $this->getAppIdByKey($appKey); // 复用上面的函数
+                $app = $this->getAppIdByKey($appKey);
                 if (!$app) return ['success' => false, 'message' => '应用密钥无效'];
                 if ($app['status'] == 0) return ['success' => false, 'message' => '应用已被禁用'];
                 $appNameForLog = $app['app_name'];
@@ -173,6 +171,34 @@ if (!class_exists('Database')) {
         public function resetDeviceBindingByCardId($id) { return $this->batchUnbindCards([$id]); }
         public function updateCardStatus($id, $status) { if ($status == 1) { $check = $this->pdo->prepare("SELECT expire_time FROM cards WHERE id = ?"); $check->execute([$id]); $row = $check->fetch(PDO::FETCH_ASSOC); if ($row && empty($row['expire_time'])) { $status = 0; } } $this->pdo->prepare("UPDATE cards SET status=? WHERE id=?")->execute([$status, $id]); if ($status == 2) { $codeStmt = $this->pdo->prepare("SELECT card_code FROM cards WHERE id = ?"); $codeStmt->execute([$id]); $code = $codeStmt->fetchColumn(); if ($code) { $this->pdo->prepare("DELETE FROM active_devices WHERE card_code = ?")->execute([$code]); } } }
         public function getDashboardData() { $total = $this->pdo->query("SELECT COUNT(*) FROM cards")->fetchColumn(); $unused = $this->pdo->query("SELECT COUNT(*) FROM cards WHERE status = 0")->fetchColumn(); $used = $this->pdo->query("SELECT COUNT(*) FROM cards WHERE status = 1")->fetchColumn(); $active = $this->pdo->query("SELECT COUNT(*) FROM active_devices WHERE status = 1 AND expire_time > datetime('now')")->fetchColumn(); $types = $this->pdo->query("SELECT card_type, COUNT(*) as count FROM cards GROUP BY card_type")->fetchAll(PDO::FETCH_KEY_PAIR); $appStats = $this->pdo->query("SELECT IFNULL(T2.app_name, '通用/未分类') as app_name, COUNT(T1.id) as count FROM cards T1 LEFT JOIN applications T2 ON T1.app_id = T2.id GROUP BY T1.app_id ORDER BY count DESC LIMIT 5")->fetchAll(PDO::FETCH_ASSOC); return ['stats' => ['total' => $total, 'unused' => $unused, 'used' => $used, 'active' => $active], 'chart_types' => $types, 'app_stats' => $appStats]; }
+        
+        // --- 分页相关新方法 (修改后支持状态筛选) ---
+        public function getTotalCardCount($statusFilter = null) {
+            if ($statusFilter !== null) {
+                $stmt = $this->pdo->prepare("SELECT COUNT(*) FROM cards WHERE status = ?");
+                $stmt->execute([$statusFilter]);
+                return $stmt->fetchColumn();
+            }
+            return $this->pdo->query("SELECT COUNT(*) FROM cards")->fetchColumn();
+        }
+        
+        public function getCardsPaginated($limit, $offset, $statusFilter = null) {
+            $sql = "SELECT T1.*, IFNULL(T2.app_name, '通用') as app_name FROM cards T1 LEFT JOIN applications T2 ON T1.app_id = T2.id ";
+            if ($statusFilter !== null) {
+                $sql .= "WHERE T1.status = :status ";
+            }
+            $sql .= "ORDER BY T1.create_time DESC LIMIT :limit OFFSET :offset";
+            
+            $stmt = $this->pdo->prepare($sql);
+            if ($statusFilter !== null) {
+                $stmt->bindValue(':status', $statusFilter, PDO::PARAM_INT);
+            }
+            $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+            $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        }
+
         public function getAllCards() { return $this->pdo->query("SELECT T1.*, IFNULL(T2.app_name, '通用') as app_name FROM cards T1 LEFT JOIN applications T2 ON T1.app_id = T2.id ORDER BY T1.create_time DESC LIMIT 500")->fetchAll(PDO::FETCH_ASSOC); }
         public function searchCards($k) { $s="%$k%"; $q=$this->pdo->prepare("SELECT T1.*, IFNULL(T2.app_name, '通用') as app_name FROM cards T1 LEFT JOIN applications T2 ON T1.app_id = T2.id WHERE T1.card_code LIKE ? OR T1.notes LIKE ? OR T1.device_hash LIKE ? OR T2.app_name LIKE ?"); $q->execute([$s,$s,$s,$s]); return $q->fetchAll(PDO::FETCH_ASSOC); }
         public function getUsageLogs($l, $o) { $q=$this->pdo->prepare("SELECT * FROM usage_logs ORDER BY access_time DESC LIMIT ? OFFSET ?"); $q->bindValue(1,$l,PDO::PARAM_INT); $q->bindValue(2,$o,PDO::PARAM_INT); $q->execute(); return $q->fetchAll(PDO::FETCH_ASSOC); }

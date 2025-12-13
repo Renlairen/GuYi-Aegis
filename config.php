@@ -1,5 +1,5 @@
 <?php
-// config.php - Enterprise Security Core
+// config.php 
 // 1. 安全响应头
 header("X-Frame-Options: SAMEORIGIN"); // 防止点击劫持
 header("X-XSS-Protection: 1; mode=block"); // XSS防护
@@ -10,8 +10,8 @@ header("Referrer-Policy: strict-origin-when-cross-origin");
 error_reporting(0); // 生产环境关闭错误显示
 ini_set('display_errors', 0);
 
-// 3. 系统密钥 (用于Cookie签名和CSRF令牌，请修改此字符串)
-define('SYS_SECRET', 'ENT_SECure_K3y_@9928_CHANGE_THIS_TO_RANDOM');
+// 3. 系统密钥 (严重：请务必修改下方的字符串，乱打一串字符即可，否则会被秒破)
+define('SYS_SECRET', 'CHANGE_ME_' . md5(__FILE__ . php_uname())); 
 
 // 4. 路径与数据库保护
 $base_dir = __DIR__;
@@ -23,7 +23,7 @@ if (!is_dir($db_dir)) {
     }
 }
 
-// 自动写入 .htaccess 禁止直接下载 .db 文件 (针对 Apache/LiteSpeed)
+// 自动写入 .htaccess 禁止直接下载 .db 文件
 $htaccess = $db_dir . '/.htaccess';
 if (!file_exists($htaccess)) {
     file_put_contents($htaccess, "Order Deny,Allow\nDeny from all");
